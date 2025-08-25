@@ -1,0 +1,15 @@
+{
+    "name": "hossam/actions-next.js",
+    "autoload": {
+        "psr-4": {
+            "Hossam\\ActionsNextJs\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "HossamN0",
+            "email": "bshossam@gmail.com"
+        }
+    ],
+    "require": {}
+}
