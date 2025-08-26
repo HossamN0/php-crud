@@ -95,24 +95,127 @@ class UserModel extends Model
 
     public function GetUser($id)
     {
-        $result = $this->query("SELECT id, name, email, created_at FROM $this->tableName WHERE id = :id")
-            ->execute([
-                ':id' => $id
-            ])->getStmt();
-        if ($result->rowCount() > 0) {
-            http_response_code(200);
+        try {
+            $result = $this->query("SELECT id, name, email, created_at FROM $this->tableName WHERE id = :id")
+                ->execute([
+                    ':id' => $id
+                ])->getStmt();
+            if ($result->rowCount() > 0) {
+                http_response_code(200);
+                return [
+                    'status' => 'success',
+                    'message' => 'User Found',
+                    'code' => 200,
+                    'user' => $result->fetch(\PDO::FETCH_ASSOC)
+                ];
+            } else {
+                http_response_code(404);
+                return [
+                    'status' => 'error',
+                    'message' => 'User Not Found',
+                    'code' => 404,
+                ];
+            }
+        } catch (\PDOException $e) {
             return [
-                'status' => 'success',
-                'message' => 'User Found',
-                'code' => 200,
-                'user' => $result->fetch(\PDO::FETCH_ASSOC)
+                'status' => 'error',
+                'message' => 'Database error: ' . $e->getMessage(),
+                'code' => 500
             ];
-        } else {
+        }
+    }
+
+    public function UpdateUser($data, $id)
+    {
+        if (empty($data['name'])) {
             http_response_code(400);
             return [
                 'status' => 'error',
-                'message' => 'User Not Found',
-                'code' => 400,
+                'message' => 'Name is required',
+                'code' => 400
+            ];
+        }
+
+        if (empty($data['email'])) {
+            http_response_code(400);
+            return [
+                'status' => 'error',
+                'message' => 'Email is required',
+                'code' => 400
+            ];
+        }
+
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            http_response_code(400);
+            return [
+                'status' => 'error',
+                'message' => 'Invalid email format',
+                'code' => 400
+            ];
+        }
+
+        try {
+            $emailFound = $this->query("SELECT id FROM users WHERE email = :email")
+                ->execute([
+                    ':email' => $data['email']
+                ]);
+            if ($emailFound->getStmt()->rowCount() > 0) {
+                return [
+                    'status' => 'error',
+                    'message' => 'This email used before',
+                    'code' => 400,
+                ];
+            }
+            $this->query("UPDATE $this->tableName SET name = :name, email = :email WHERE id = :id")
+                ->execute([
+                    ':name' => $data['name'],
+                    ':email' => $data['email'],
+                    ':id' => $id
+                ]);
+            http_response_code(200);
+            $newData = $this->query("SELECT id, name, email FROM $this->tableName WHERE id = :id")
+                ->execute([
+                    ':id' => $id
+                ]);
+            return [
+                'status' => 'success',
+                'message' => 'User Updated successfully',
+                'code' => 200,
+                'user' => $newData->getStmt()->fetch(\PDO::FETCH_ASSOC)
+            ];
+        } catch (\PDOException $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Database error: ' . $e->getMessage(),
+                'code' => 500
+            ];
+        }
+    }
+
+    public function DeleteUser($id)
+    {
+        try {
+            $userFound = $this->query("SELECT name FROM users WHERE id = :id")->execute([':id' => $id]);
+            if ($userFound->getStmt()->rowCount() == 0) {
+                http_response_code(404);
+                return [
+                    'status' => 'error',
+                    'message' => 'User Not Found',
+                    'code' => 404
+                ];
+            }
+            $this->query("DELETE FROM users WHERE id = :id")->execute([':id' => $id]);
+            http_response_code(200);
+            return [
+                'status' => 'success',
+                'message' => 'User Deleted',
+                'code' => 200
+            ];
+        } catch (\PDOException $e) {
+            return [
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'code' => 400
             ];
         }
     }
