@@ -155,11 +155,13 @@ class UserModel extends Model
         }
 
         try {
-            $emailFound = $this->query("SELECT id FROM users WHERE email = :email")
+            $emailFound = $this->query("SELECT id FROM users WHERE email = :email AND id != :id")
                 ->execute([
-                    ':email' => $data['email']
+                    ':email' => $data['email'],
+                    ':id' => $id
                 ]);
             if ($emailFound->getStmt()->rowCount() > 0) {
+                http_response_code(400);
                 return [
                     'status' => 'error',
                     'message' => 'This email used before',
